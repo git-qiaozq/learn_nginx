@@ -1,4 +1,4 @@
-## OpenResty学习笔记 - pairs 和 ipairs
+## LUA学习笔记 - pairs 和 ipairs
 
 ### 官方描述
 > **pairs(t)**
