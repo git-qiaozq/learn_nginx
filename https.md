@@ -157,7 +157,7 @@ echo "Create server private key..."
 openssl genrsa -des3 -out $DOMAIN.private.key 2048
 
 echo "Create server certificate signing request..."
-SUBJECT="/C=CN/ST=ZheJiang/L=HangZhou/O=Hundsun/OU=R&DCenter/CN=HSIAR"
+SUBJECT="/C=CN/ST=ZheJiang/L=HangZhou/O=Company/OU=R&DCenter/CN=Coder"
 
 openssl req -new -subj $SUBJECT -key $DOMAIN.private.key -out $DOMAIN.csr
 
