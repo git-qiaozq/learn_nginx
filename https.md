@@ -178,3 +178,10 @@ echo "    ssl_certificate     /usr/local/nginx/ssl/$DOMAIN.crt;"
 echo "    ssl_certificate_key /usr/local/nginx/ssl/$DOMAIN.public.key;"
 echo "}"
 ```
+
+> 参考网址：
+> [1. SSL/TLS协议运行机制的概述](http://www.ruanyifeng.com/blog/2014/02/ssl_tls.html)
+> [2. SSL/TLS原理详解](https://segmentfault.com/a/1190000002554673)
+> [3. 使用 OpenSSL 生成自签名证书](https://www.ibm.com/support/knowledgecenter/zh/SSWHYP_4.0.0/com.ibm.apimgmt.cmc.doc/task_apionprem_gernerate_self_signed_openSSL.html)
+> [4. OpenSSL 与 SSL 数字证书概念贴](http://seanlook.com/2015/01/15/openssl-certificate-encryption/)
+> [5. 基于OpenSSL自建CA和颁发SSL证书](http://seanlook.com/2015/01/18/openssl-self-sign-ca/)
