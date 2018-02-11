@@ -100,7 +100,6 @@ RSA算法是目前流行的公开秘钥加密算法。
 
 X.509 证书中的字段信息:
 ![](https://github.com/melon-s/learn_nginx/blob/master/images/X.509%E8%AF%81%E4%B9%A6%E5%AD%97%E6%AE%B5.jpg)
-![](https://github.com/melon-s/learn_nginx/blob/master/images/X.509%E8%AF%81%E4%B9%A6%E5%AD%97%E6%AE%B5.jpg)
 #### 用证书对服务器进行认证
 通过 HTTPS 建立了一个安全 Web 事务之后，现代的浏览器都会自动获取所连接服 务器的数字证书。如果服务器没有证书，安全连接就会失败。
 
