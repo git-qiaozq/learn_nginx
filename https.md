@@ -23,6 +23,13 @@
         * [服务器证书](#服务器证书)
            * [站点证书的有效性](#站点证书的有效性)
         * [自签名证书](#自签名证书)
+        * [自签名证书和私有CA签名的证书的区别](#自签名证书和私有ca签名的证书的区别)
+        * [扩展名及各种证书格式的区别](#扩展名及各种证书格式的区别)
+        * [SSL双向认证](#ssl双向认证)
+        * [浏览器导入证书的方式](#浏览器导入证书的方式)
+        * [常见错误](#常见错误)
+        * [总结](#总结)
+        * [参考网址](#参考网址)
 
 ### 保护HTTP的安全
 HTTP 的安全版本要高效、 可移植且易于管理， 不但能够适应不断变化的情况而且还应
@@ -143,50 +150,173 @@ SSL 自身不要求用户检查 Web 服务器证书，但大部分现代浏览�
 - **站点身份检测** 为防止服务器复制其他人的证书，或拦截其他人的流量，大部分浏览器都会试着 去验证证书中的域名与它们所对话的服务器的域名是否匹配。服务器证书中通常 都包含一个域名，但有些 CA 会为一组或一群服务器创建一些包含了服务器名称 列表或通配域名的证书。如果主机名与证书中的标识符不匹配，面向用户的客户 端要么就去通知用户，要么就以表示证书不正确的差错报文来终止连接。
 
 #### 自签名证书
-给nginx自签名证书
+- 给nginx自签名证书
 
 ```bash
 #!/bin/sh
 
 # create self-signed server certificate:
-read -p "Enter your domain [www.example.com]: " DOMAIN
 
-echo "Create server private key..."
-# Generating RSA private key, 1024 bit long modulus
-openssl genrsa -des3 -out $DOMAIN.private.key 2048
+# 1.输入服务器域名
+read -p "> Enter your domain [www.example.com]: " DOMAIN
 
-echo "Create server certificate signing request..."
-SUBJECT="/C=CN/ST=ZheJiang/L=HangZhou/O=Company/OU=R&DCenter/CN=Coder"
+# 2.生成服务端私钥
+echo "> Creating server private key (*.key) ..."
+openssl genrsa -des3 -out $DOMAIN.key 2048
 
-openssl req -new -subj $SUBJECT -key $DOMAIN.private.key -out $DOMAIN.csr
+# 3.生成服务端证书签名请求
+echo "> Creating server certificate signing request (*.csr) ..."
+SUBJECT="/C=CN/ST=ZheJiang/L=HangZhou/O=Melon/OU=Melon/CN=$DOMAIN"
+openssl req -new -subj $SUBJECT -key $DOMAIN.key -out $DOMAIN.csr
 
-echo "Create server public key..."
-openssl rsa -in $DOMAIN.private.key -out $DOMAIN.public.key
+# 4.移除私钥中的口令，否则nginx引用此文件时需要输入密码
+echo "> Removing passwd from server private key ..."
+openssl rsa -in $DOMAIN.key -out $DOMAIN.key
 
-echo "Sign SSL certificate..."
-openssl x509 -req -days 3650 -in $DOMAIN.csr -signkey $DOMAIN.public.key -out $DOMAIN.crt
+# 5.使用私钥对签名请求进行签名
+echo "> Signing certificate (*.crt) ..."
+openssl x509 -req -days 3650 -in $DOMAIN.csr -signkey $DOMAIN.key -out $DOMAIN.crt
 
 echo "TODO:"
 echo "Copy $DOMAIN.crt to /usr/local/nginx/ssl/$DOMAIN.crt"
-echo "Copy $DOMAIN.public.key to /usr/local/nginx/ssl/$DOMAIN.public.key"
+echo "Copy $DOMAIN.key to /usr/local/nginx/ssl/$DOMAIN.key"
 echo "Add configuration in nginx:"
 echo "server {"
 echo "    ..."
 echo "    listen 443 ssl;"
 echo "    ssl_certificate     /usr/local/nginx/ssl/$DOMAIN.crt;"
-echo "    ssl_certificate_key /usr/local/nginx/ssl/$DOMAIN.public.key;"
+echo "    ssl_certificate_key /usr/local/nginx/ssl/$DOMAIN.key;"
 echo "}"
 ```
 
+- 通过自签名CA颁发证书
 
-> 参考网址：
->
-> [1. SSL/TLS协议运行机制的概述](http://www.ruanyifeng.com/blog/2014/02/ssl_tls.html)
->
-> [2. SSL/TLS原理详解](https://segmentfault.com/a/1190000002554673)
->
-> [3. 使用 OpenSSL 生成自签名证书](https://www.ibm.com/support/knowledgecenter/zh/SSWHYP_4.0.0/com.ibm.apimgmt.cmc.doc/task_apionprem_gernerate_self_signed_openSSL.html)
->
-> [4. OpenSSL 与 SSL 数字证书概念贴](http://seanlook.com/2015/01/15/openssl-certificate-encryption/)
->
-> [5. 基于OpenSSL自建CA和颁发SSL证书](http://seanlook.com/2015/01/18/openssl-self-sign-ca/)
+```
+#!/bin/bash
+
+#创建私有CA，然后用该CA给证书签名
+
+read -p "> Rereate CA certificate ? (y/N): " CREATE_CA_CERT
+if [ "$CREATE_CA_CERT" = "Y" ] || [ "$CREATE_CA_CERT" = "y" ]; then
+
+# 1.创建CA私钥
+echo "> Creating CA private key (mCA.key) ..."
+openssl genrsa -des3 -out mCA.key 2048
+
+# 2.生成CA的自签名证书
+echo "> Creating CA certificate (mCA.crt) ..."
+CASUBJECT="/C=CN/ST=ZheJiang/L=HangZhou/O=GeekMelonLtd/CN=GeekMelonCA"
+openssl req -new -x509 -days 3650 -subj $CASUBJECT -key mCA.key -out mCA.crt 
+
+fi
+
+echo "> Begin to create server certificate : "
+read -p "Enter your domain [www.example.com]: " DOMAIN
+
+# 3.生成服务端私钥
+echo "> Creating server private key (*.key) ..."
+openssl genrsa -des3 -out $DOMAIN.key 2048
+
+# 4.移除私钥中的口令，否则nginx引用此文件时需要输入密码
+echo "> Removing passwd from server private key ..."
+openssl rsa -in $DOMAIN.key -out $DOMAIN.key
+
+# 5.生成服务端证书签名请求
+echo "> Creating server certificate signing request (*.csr) ..."
+SUBJECT="/C=CN/ST=ZheJiang/L=HangZhou/O=GeekMelon/CN=$DOMAIN"
+openssl req -new -subj $SUBJECT -key $DOMAIN.key -config /etc/pki/tls/openssl.cnf -extensions v3_req -out $DOMAIN.csr
+# openssl req -new -key $DOMAIN.key -config /etc/pki/tls/openssl.cnf -extensions v3_req -out $DOMAIN.csr
+
+# 6.使用CA证书给签名请求进行签名
+echo "> Signing certificate with CA (*.crt) ..."
+# openssl x509 -req -days 3650 -in $DOMAIN.csr -CA mCA.crt -CAkey mCA.key -CAcreateserial -out $DOMAIN.crt
+openssl x509 -req -days 3650 -in $DOMAIN.csr -extfile /etc/pki/tls/v3.ext -CA mCA.crt -CAkey mCA.key -CAcreateserial -out $DOMAIN.crt
+
+# 7.创建客户端证书
+read -p "> Create client certificate ? (y/N): " CREATE_CLIENT_CERT
+if [ "$CREATE_CLIENT_CERT" = "Y" ] || [ "$CREATE_CLIENT_CERT" = "y" ]; then
+    echo "> Creating client private key (*.key) ..."
+    openssl genrsa -des3 -out client.key 2048
+
+    echo "> Creating client certificate signing request (*.csr) ..."
+    SUBJECT="/C=CN/ST=ZheJiang/L=HangZhou/O=GeekMelon/CN=client"
+    openssl req -new -subj $SUBJECT -key client.key -config /etc/pki/tls/openssl.cnf -extensions v3_req -out client.csr
+
+    echo "> Signing certificate with CA (*.crt) ..."
+    openssl x509 -req -days 3650 -in client.csr -extfile /etc/pki/tls/v3.ext -CA mCA.crt -CAkey mCA.key -CAcreateserial -out client.crt
+
+    # 转换证书格式为window支持的格式
+    echo "> Converting client cert to pfx format ..."
+    openssl pkcs12 -export -inkey client.key -in client.crt -out client.pfx
+fi
+
+echo "TODO:"
+echo "Copy $DOMAIN.crt to /usr/local/nginx/ssl/$DOMAIN.crt"
+echo "Copy $DOMAIN.key to /usr/local/nginx/ssl/$DOMAIN.key"
+echo "Add configuration in nginx:"
+echo "server {"
+echo "    ..."
+echo "    listen 443 ssl;"
+echo "    ssl_certificate     /usr/local/nginx/ssl/$DOMAIN.crt;"
+echo "    ssl_certificate_key /usr/local/nginx/ssl/$DOMAIN.key;"
+echo "    ..."
+echo "    ssl_verify_client on;"
+echo "    ssl_client_certificate /usr/local/nginx/ssl/mCA.crt;"
+echo "}"
+```
+
+#### 自签名证书和私有CA签名的证书的区别
+自签名的证书无法被吊销，CA签名的证书可以被吊销 能不能吊销证书的区别在于，如果你的私钥被黑客获取，如果证书不能被吊销，则黑客可以伪装成你与用户进行通信。
+
+如果你的规划需要创建多个证书，那么使用私有CA的方法比较合适，因为只要给所有的客户端都安装了CA的证书，那么以该证书签名过的证书，客户端都是信任的，也就是安装一次就够了。如果你直接用自签名证书，你需要给所有的客户端安装该证书才会被信任，如果你需要第二个证书，则还的挨个给所有的客户端安装证书2才会被信任。
+
+#### 扩展名及各种证书格式的区别
+- .crt 证书文件 ，可以是DER（二进制）编码的，也可以是PEM（ ASCII (Base64) ）编码的 ，在类unix系统中比较常见 
+- .cer 也是证书  常见于Windows系统  编码类型同样可以是DER或者PEM的，windows 下有工具可以转换crt到cer
+- .csr 证书签名请求   一般是生成请求以后发送给CA，然后CA会给你签名并发回证书
+- .key  一般公钥或者密钥都会用这种扩展名，可以是DER编码的或者是PEM编码的  查看DER编码的（公钥或者密钥）的文件的命令为 openssl rsa -inform DER  -noout -text -in  xxx.key  查看PEM编码的（公钥或者密钥）的文件的命令为 openssl rsa -inform PEM   -noout -text -in  xxx.key  
+- .p12 证书  包含一个X509证书和一个被密码保护的私钥
+
+.cer/.crt是用于存放证书，它是2进制形式存放的，不含私钥。
+.pem跟crt/cer的区别是它以Ascii来表示。
+.pfx/.p12用于存放个人证书/私钥，他通常包含保护密码，2进制方式。
+
+#### SSL双向认证
+通常情况下，只需要验证服务端证书，保证服务端的可信。但是在一些特殊的场景，比如金融行业，需要校验客户端的合法性，持有CA签署的证书的客户端才能接入服务端，此时就需要配置双向认证。
+按照CA签署服务端证书相同的方式，签署客户端证书，然后转换成window格式，导入到客户端。
+```
+ssl_verify_client on;
+ssl_client_certificate /usr/local/openresty/nginx/ssl/mCA.crt;
+```
+
+#### 浏览器导入证书的方式
+**1. 导入根证书**
+双击mCA.crt -> 点击“安装证书” -> 点击“下一步” -> 选择“将所有证书放入下列存储” -> 浏览，选择“受信任的根证书颁发机构” -> 点击“确定” -> 点击“下一步” -> 点击“完成”
+
+**2. 导入客户端证书**
+双击client.pfx -> 下一步 -> 输入创建根证书时创建的密码 -> 选择位置 -> 完成
+
+**3. 查看证书导入情况**
+cmd + R :  certmgr.msc
+
+#### 常见错误
+1. 自签CA签发证书，在Chrome浏览器提示“不是私密连接”
+错误原因参见：[帮助](https://support.google.com/chrome/a/answer/7391219?hl=zh-Hans)
+解决方案 参见：[OpenSSL自签发配置有多域名或ip地址的证书](http://blog.csdn.net/u013066244/article/details/78725842)
+
+#### 总结
+1. 证书中包含公钥信息。
+2. 私钥用于签名，相当于指纹，公钥解签。CA证书用私钥给待颁发的证书签名，客户端预安装受信根证书，可校验服务端证书不是伪造，因为可以用CA证书的公钥验证证书确实为CA签发。
+3. 双向认证，服务端配置CA证书，客户端发送签发的证书到服务端，服务端可校验其合法性。这样只有CA签发的客户端才有权限访问服务端。
+
+#### 参考网址
+[1. SSL/TLS原理详解](https://segmentfault.com/a/1190000002554673)
+[2. SSL/TLS协议运行机制的概述](http://www.ruanyifeng.com/blog/2014/02/ssl_tls.html)
+[3. 使用 OpenSSL 生成自签名证书](https://www.ibm.com/support/knowledgecenter/zh/SSWHYP_4.0.0/com.ibm.apimgmt.cmc.doc/task_apionprem_gernerate_self_signed_openSSL.html)
+[4. OpenSSL 与 SSL 数字证书概念贴](http://seanlook.com/2015/01/15/openssl-certificate-encryption/)
+[5. 基于OpenSSL自建CA和颁发SSL证书](http://seanlook.com/2015/01/18/openssl-self-sign-ca/)
+[6. 自签名证书和私有CA签名的证书的区别](http://blog.csdn.net/sdcxyz/article/details/47220129)
+[7. HTTPS自签发CA证书](https://yi-love.github.io/blog/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/2017/07/15/https-ca.html)
+[8. ngx_http_ssl_module](http://nginx.org/en/docs/http/ngx_http_ssl_module.html)
+[9. OpenSSL自签发配置有多域名或ip地址的证书](http://blog.csdn.net/u013066244/article/details/78725842)
+[10. OpenSSL SAN 证书](http://liaoph.com/openssl-san/)
