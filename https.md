@@ -25,11 +25,14 @@
         * [自签名证书](#自签名证书)
         * [自签名证书和私有CA签名的证书的区别](#自签名证书和私有ca签名的证书的区别)
         * [扩展名及各种证书格式的区别](#扩展名及各种证书格式的区别)
+           * [1.证书格式](#1证书格式)
+           * [2.转换方式](#2转换方式)
         * [SSL双向认证](#ssl双向认证)
         * [浏览器导入证书的方式](#浏览器导入证书的方式)
         * [常见错误](#常见错误)
         * [总结](#总结)
         * [参考网址](#参考网址)
+
 
 ### 保护HTTP的安全
 HTTP 的安全版本要高效、 可移植且易于管理， 不但能够适应不断变化的情况而且还应
@@ -277,9 +280,32 @@ echo "}"
 - .key  一般公钥或者密钥都会用这种扩展名，可以是DER编码的或者是PEM编码的  查看DER编码的（公钥或者密钥）的文件的命令为 openssl rsa -inform DER  -noout -text -in  xxx.key  查看PEM编码的（公钥或者密钥）的文件的命令为 openssl rsa -inform PEM   -noout -text -in  xxx.key  
 - .p12 证书  包含一个X509证书和一个被密码保护的私钥
 
-.cer/.crt是用于存放证书，它是2进制形式存放的，不含私钥。
-.pem跟crt/cer的区别是它以Ascii来表示。
-.pfx/.p12用于存放个人证书/私钥，他通常包含保护密码，2进制方式。
+**.cer/.crt是用于存放证书，它是2进制形式存放的，不含私钥。**   
+**.pem跟crt/cer的区别是它以Ascii来表示。**   
+**.pfx/.p12用于存放个人证书/私钥，他通常包含保护密码，2进制方式。**   
+
+##### 1.证书格式
+- **PEM 格式**    
+PEM格式通常用于数字证书认证机构（Certificate Authorities，CA），扩展名为.pem, .crt, .cer, and .key。内容为Base64编码的ASCII码文件，有类似"-----BEGIN CERTIFICATE-----" 和 "-----END CERTIFICATE-----"的头尾标记。服务器认证证书，中级认证证书和私钥都可以储存为PEM格式（认证证书其实就是公钥）。Apache和类似的服务器使用PEM格式证书。  
+- **DER 格式**    
+DER格式与PEM不同之处在于其使用二进制而不是Base64编码的ASCII。扩展名为.der，但也经常使用.cer用作扩展名，所有类型的认证证书和私钥都可以存储为DER格式。Java使其典型使用平台。   
+- **PKCS#7/P7B 格式**   
+PKCS#7 或 P7B格式通常以Base64的格式存储，扩展名为.p7b 或 .p7c，有类似BEGIN PKCS7-----" 和 "-----END PKCS7-----"的头尾标记。PKCS#7 或 P7B只能存储认证证书或证书路径中的证书（就是存储认证证书链，本级，上级，到根级都存到一个文件中）。不能存储私钥，Windows和Tomcat都支持这种格式。   
+- **PKCS#12/PFX 格式**    
+PKCS#12 或 PFX格式是以加密的二进制形式存储服务器认证证书，中级认证证书和私钥。扩展名为.pfx 和 .p12，PXF通常用于Windows中导入导出认证证书和私钥。    
+
+##### 2.转换方式    
+- 从pfx格式的证书提取出密钥和证书
+```
+openssl pkcs12 -in my.pfx -nodes -out server.pem
+openssl rsa -in server.pem -out server.key 
+openssl x509 -in server.pem -out server.crt
+```
+- PEM格式的证书与DER格式的证书的转换
+```
+openssl x509 -in cert.pem -inform PEM -out cert.der -outform DER 
+openssl x509 -in ca.cer -inform DER -out ca.pem -outform  PEM
+```
 
 #### SSL双向认证
 通常情况下，只需要验证服务端证书，保证服务端的可信。但是在一些特殊的场景，比如金融行业，需要校验客户端的合法性，持有CA签署的证书的客户端才能接入服务端，此时就需要配置双向认证。   
