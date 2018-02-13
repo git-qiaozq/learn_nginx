@@ -282,7 +282,7 @@ echo "}"
 .pfx/.p12用于存放个人证书/私钥，他通常包含保护密码，2进制方式。
 
 #### SSL双向认证
-通常情况下，只需要验证服务端证书，保证服务端的可信。但是在一些特殊的场景，比如金融行业，需要校验客户端的合法性，持有CA签署的证书的客户端才能接入服务端，此时就需要配置双向认证。
+通常情况下，只需要验证服务端证书，保证服务端的可信。但是在一些特殊的场景，比如金融行业，需要校验客户端的合法性，持有CA签署的证书的客户端才能接入服务端，此时就需要配置双向认证。   
 按照CA签署服务端证书相同的方式，签署客户端证书，然后转换成window格式，导入到客户端。
 ```
 ssl_verify_client on;
@@ -290,18 +290,18 @@ ssl_client_certificate /usr/local/openresty/nginx/ssl/mCA.crt;
 ```
 
 #### 浏览器导入证书的方式
-**1. 导入根证书**
+**1. 导入根证书**    
 双击mCA.crt -> 点击“安装证书” -> 点击“下一步” -> 选择“将所有证书放入下列存储” -> 浏览，选择“受信任的根证书颁发机构” -> 点击“确定” -> 点击“下一步” -> 点击“完成”
 
-**2. 导入客户端证书**
+**2. 导入客户端证书**    
 双击client.pfx -> 下一步 -> 输入创建根证书时创建的密码 -> 选择位置 -> 完成
 
-**3. 查看证书导入情况**
+**3. 查看证书导入情况**   
 cmd + R :  certmgr.msc
 
 #### 常见错误
 1. 自签CA签发证书，在Chrome浏览器提示“不是私密连接”
-错误原因参见：[帮助](https://support.google.com/chrome/a/answer/7391219?hl=zh-Hans)
+错误原因参见：[帮助](https://support.google.com/chrome/a/answer/7391219?hl=zh-Hans)  
 解决方案 参见：[OpenSSL自签发配置有多域名或ip地址的证书](http://blog.csdn.net/u013066244/article/details/78725842)
 
 #### 总结
@@ -310,13 +310,13 @@ cmd + R :  certmgr.msc
 3. 双向认证，服务端配置CA证书，客户端发送签发的证书到服务端，服务端可校验其合法性。这样只有CA签发的客户端才有权限访问服务端。
 
 #### 参考网址
-[1. SSL/TLS原理详解](https://segmentfault.com/a/1190000002554673)
-[2. SSL/TLS协议运行机制的概述](http://www.ruanyifeng.com/blog/2014/02/ssl_tls.html)
-[3. 使用 OpenSSL 生成自签名证书](https://www.ibm.com/support/knowledgecenter/zh/SSWHYP_4.0.0/com.ibm.apimgmt.cmc.doc/task_apionprem_gernerate_self_signed_openSSL.html)
-[4. OpenSSL 与 SSL 数字证书概念贴](http://seanlook.com/2015/01/15/openssl-certificate-encryption/)
-[5. 基于OpenSSL自建CA和颁发SSL证书](http://seanlook.com/2015/01/18/openssl-self-sign-ca/)
-[6. 自签名证书和私有CA签名的证书的区别](http://blog.csdn.net/sdcxyz/article/details/47220129)
-[7. HTTPS自签发CA证书](https://yi-love.github.io/blog/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/2017/07/15/https-ca.html)
-[8. ngx_http_ssl_module](http://nginx.org/en/docs/http/ngx_http_ssl_module.html)
-[9. OpenSSL自签发配置有多域名或ip地址的证书](http://blog.csdn.net/u013066244/article/details/78725842)
+[1. SSL/TLS原理详解](https://segmentfault.com/a/1190000002554673)   
+[2. SSL/TLS协议运行机制的概述](http://www.ruanyifeng.com/blog/2014/02/ssl_tls.html)    
+[3. 使用 OpenSSL 生成自签名证书](https://www.ibm.com/support/knowledgecenter/zh/SSWHYP_4.0.0/com.ibm.apimgmt.cmc.doc/task_apionprem_gernerate_self_signed_openSSL.html)  
+[4. OpenSSL 与 SSL 数字证书概念贴](http://seanlook.com/2015/01/15/openssl-certificate-encryption/)  
+[5. 基于OpenSSL自建CA和颁发SSL证书](http://seanlook.com/2015/01/18/openssl-self-sign-ca/)  
+[6. 自签名证书和私有CA签名的证书的区别](http://blog.csdn.net/sdcxyz/article/details/47220129)   
+[7. HTTPS自签发CA证书](https://yi-love.github.io/blog/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/2017/07/15/https-ca.html)   
+[8. ngx_http_ssl_module](http://nginx.org/en/docs/http/ngx_http_ssl_module.html)    
+[9. OpenSSL自签发配置有多域名或ip地址的证书](http://blog.csdn.net/u013066244/article/details/78725842)   
 [10. OpenSSL SAN 证书](http://liaoph.com/openssl-san/)
